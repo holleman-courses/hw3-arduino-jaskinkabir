@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include "TensorFlowLite.h"
+
 #define INPUT_BUFFER_SIZE 64
 #define OUTPUT_BUFFER_SIZE 64
 #define INT_ARRAY_SIZE 8
