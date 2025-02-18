@@ -31,9 +31,8 @@ namespace {
   }  // namespace
 
 // put function declarations here:
-int string_to_array(char *in_str, int *int_array);
-void print_int_array(int *int_array, int array_len);
-int sum_array(int *int_array, int array_len);
+int string_to_array(char *in_str, int8_t *int_array);
+void print_int_array(int8_t *int_array, int array_len);
 
 
 char received_char = (char)NULL;              
@@ -159,7 +158,7 @@ int string_to_array(char *in_str, int8_t *int_array) {
   char *token = strtok(in_str, ",");
   
   while (token != NULL) {
-    int_array[num_integers++] = atoi(token);
+    int_array[num_integers++] = (int8_t)atoi(token);
     token = strtok(NULL, ",");
     if (num_integers >= INT_ARRAY_SIZE) {
       break;
@@ -180,13 +179,4 @@ void print_int_array(int8_t *int_array, int array_len) {
   }
   sprintf(out_str_buff+curr_pos, "]\r\n");
   Serial.print(out_str_buff);
-}
-
-int sum_array(int *int_array, int array_len) {
-  int curr_sum = 0; // running sum of the array
-
-  for(int i=0;i<array_len;i++) {
-    curr_sum += int_array[i];
-  }
-  return curr_sum;
 }
