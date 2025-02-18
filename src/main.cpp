@@ -86,17 +86,19 @@ void setup() {
   // Serial.println() (appends new-line)  or Serial.print() (no added new-line)
   int t0 = millis();
   Serial.println("Test Project waking up");
+  
   int t1 = millis();
   if (kTfLiteOk != interpreter->Invoke()) {
     TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed.");
   }
   int t2 = millis();
+  
   int t_print = t1 - t0;
   int t_infer = t2 - t1;
 
   TfLiteTensor * output = interpreter->output(0);
 
-  sprintf(out_str_buff, "Predicted Output: %d", output[0]);
+  sprintf(out_str_buff, "Predicted Output: %d Expected Output: -38", output->data.int8[0]);
   sprintf(out_str_buff, "Printing Time: %d Inference Time: %d", t_print, t_infer);
 
   memset(in_str_buff, (char)0, INPUT_BUFFER_SIZE*sizeof(char)); 
@@ -139,7 +141,7 @@ void loop() {
       }
       TfLiteTensor * output = interpreter->output(0);
 
-      sprintf(out_str_buff, "Predicted Output: %d", output[0]);
+      sprintf(out_str_buff, "Predicted Output: %d", output->data.int8[0]);
 
       
       // Now clear the input buffer and reset the index to 0
