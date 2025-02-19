@@ -29,7 +29,7 @@ namespace {
   // signed value.
   
   // An area of memory to use for input, output, and intermediate arrays.
-  constexpr int kTensorArenaSize = 136 * 1024;
+  constexpr int kTensorArenaSize = 128 * 1024;
   alignas(16) uint8_t tensor_arena[kTensorArenaSize];
   }  // namespace
 
@@ -53,6 +53,7 @@ void setup() {
   // Set up logging. Google style is to avoid globals or statics because of
   // lifetime uncertainty, but since this has a trivial destructor it's okay.
   // NOLINTNEXTLINE(runtime-global-variables)
+  //Serial.begin(9600);
   delay(3000);
   Serial.println("Starting up");
   tflite::InitializeTarget();
@@ -60,23 +61,25 @@ void setup() {
 
   // Map the model into a usable data structure. This doesn't involve any
   // copying or parsing, it's a very lightweight operation.
-  //model = tflite::GetModel(sin_predictor_h5);
-  if (model->version() != TFLITE_SCHEMA_VERSION) {
-    MicroPrintf(
-      "Model provided is schema version %d not equal "
-      "to supported version %d.",
-      model->version(), TFLITE_SCHEMA_VERSION
-    );
-    return;
-  }
+  model = tflite::GetModel(sin_predictor_tflite);
   Serial.println("Model loaded");
+  Serial.print("Expected schema version: ");
+  Serial.println(TFLITE_SCHEMA_VERSION);
+  Serial.print("Model version: ");
+  Serial.println(model->version());
 
-  static tflite::MicroMutableOpResolver<2> micro_op_resolver;
+
+  Serial.println("Loading op resolver");
+  static tflite::MicroMutableOpResolver<3> micro_op_resolver;
+  Serial.println("Op resolver created");
   micro_op_resolver.AddMul();
+  Serial.println("Mul Added");
   micro_op_resolver.AddFullyConnected();
-  Serial.println("Op resolver loaded");
-  //micro_op_resolver.AddAdd();
+  Serial.println("FullyConnected Added");
+  micro_op_resolver.AddAdd();
+  Serial.println("Add Added");
 
+  Serial.println("Initializing interpreter");
   static tflite::MicroInterpreter static_interpreter(
       model, micro_op_resolver, tensor_arena, kTensorArenaSize);
   interpreter = &static_interpreter;
@@ -84,6 +87,8 @@ void setup() {
   Serial.println("Interpreter loaded");
 
   TfLiteStatus allocate_status = interpreter->AllocateTensors();
+  Serial.print("Allocate status: ");
+  Serial.print(allocate_status);
   if (allocate_status != kTfLiteOk) {
     MicroPrintf("AllocateTensors() failed");
   }
