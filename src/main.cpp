@@ -2,13 +2,12 @@
 
 #include "TensorFlowLite.h"
 #include "model_data.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
-//#include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
-#include "tensorflow/lite/micro/system_setup.h"
-#include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/version.h"
+
 
 
 
@@ -21,17 +20,13 @@ namespace {
   const tflite::Model* model = nullptr;
   tflite::MicroInterpreter* interpreter = nullptr;
   TfLiteTensor* input = nullptr;
-  
-  // In order to use optimized tensorflow lite kernels, a signed int8_t quantized
-  // model is preferred over the legacy unsigned model format. This means that
-  // throughout this project, input images must be converted from unisgned to
-  // signed format. The easiest and quickest way to convert from unsigned to
-  // signed 8-bit integers is to subtract 128 from the unsigned value to get a
-  // signed value.
-  
-  // An area of memory to use for input, output, and intermediate arrays.
-  constexpr int kTensorArenaSize = 16 * 82;
-  alignas(8) uint8_t tensor_arena[kTensorArenaSize];
+  tflite::ErrorReporter* error_reporter = nullptr;
+
+  constexpr int kTensorArenaSize = 5772;
+
+  uint8_t tensor_arena[kTensorArenaSize];
+  TfLiteTensor * input = nullptr;
+  TfLiteTensor * output = nullptr;
   }  // namespace
 
 // put function declarations here:
@@ -56,13 +51,10 @@ void setup() {
   // NOLINTNEXTLINE(runtime-global-variables)
   //Serial.begin(9600);
   delay(3000);
-  Serial.println("Starting up");
-  tflite::InitializeTarget();
-  Serial.println("Target initialized");
-  
-
-  // Map the model into a usable data structure. This doesn't involve any
-  // copying or parsing, it's a very lightweight operation.
+  Serial.println("Starting Up");
+  static tflite::MicroErrorReporter micro_error_reporter;
+  error_reporter = &micro_error_reporter;
+  Serial.println("Error reporter loaded");
   model = tflite::GetModel(sin_predictor_tflite);
   Serial.println("Model loaded");
   Serial.print("Expected schema version: ");
@@ -86,12 +78,12 @@ void setup() {
 
   Serial.println("Initializing interpreter");
   static tflite::MicroInterpreter static_interpreter(
-      model, micro_op_resolver, tensor_arena, kTensorArenaSize);
+      model, micro_op_resolver, tensor_arena, kTensorArenaSize, error_reporter);
   interpreter = &static_interpreter;
 
   Serial.println("Interpreter loaded");
 
-  TfLiteTensor* input = interpreter->input(0);
+  
 
 
   Serial.println("Allocating tensors");
@@ -101,11 +93,6 @@ void setup() {
     Serial.println("AllocateTensors failed!");
     Serial.print("Error code: ");
     Serial.println(allocate_status);
-    if (allocate_status == kTfLiteError) {
-      Serial.println("Memory allocation error.");
-    } else if (allocate_status == kTfLiteUnresolvedOps) {
-      Serial.println("Missing operations in resolver.");
-    }
     while (1); // Halt
   }
   
@@ -132,7 +119,7 @@ void setup() {
   
   int t1 = millis();
   if (kTfLiteOk != interpreter->Invoke()) {
-    MicroPrintf("Invoke failed.");
+    TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed.");
   }
   int t2 = millis();
   
@@ -180,7 +167,7 @@ void loop() {
       input->data.int8 = input_array;
 
       if (kTfLiteOk != interpreter->Invoke()) {
-        MicroPrintf("Invoke failed.");
+        TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed.");
       }
       TfLiteTensor * output = interpreter->output(0);
 

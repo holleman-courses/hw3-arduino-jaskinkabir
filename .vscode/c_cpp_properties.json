@@ -10,7 +10,7 @@
             "includePath": [
                 "D:/School/Intro_IOT_ML/hw3-arduino-jaskinkabir/include",
                 "D:/School/Intro_IOT_ML/hw3-arduino-jaskinkabir/src",
-                "D:/School/Intro_IOT_ML/hw3-arduino-jaskinkabir/.pio/libdeps/nano33ble/Arduino_TensorFlowLite/src",
+                "D:/School/Intro_IOT_ML/hw3-arduino-jaskinkabir/.pio/libdeps/nano33ble/Harvard_TinyMLx/src",
                 "C:/Users/super/.platformio/packages/framework-arduino-mbed/libraries/Wire",
                 "C:/Users/super/.platformio/packages/framework-arduino-mbed/cores/arduino",
                 "C:/Users/super/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated",
@@ -66,7 +66,7 @@
                 "path": [
                     "D:/School/Intro_IOT_ML/hw3-arduino-jaskinkabir/include",
                     "D:/School/Intro_IOT_ML/hw3-arduino-jaskinkabir/src",
-                    "D:/School/Intro_IOT_ML/hw3-arduino-jaskinkabir/.pio/libdeps/nano33ble/Arduino_TensorFlowLite/src",
+                    "D:/School/Intro_IOT_ML/hw3-arduino-jaskinkabir/.pio/libdeps/nano33ble/Harvard_TinyMLx/src",
                     "C:/Users/super/.platformio/packages/framework-arduino-mbed/libraries/Wire",
                     "C:/Users/super/.platformio/packages/framework-arduino-mbed/cores/arduino",
                     "C:/Users/super/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated",
