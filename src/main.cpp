@@ -5,6 +5,7 @@
 #include "tensorflow/lite/micro/micro_log.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+//#include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/micro/system_setup.h"
 #include "tensorflow/lite/schema/schema_generated.h"
@@ -29,8 +30,8 @@ namespace {
   // signed value.
   
   // An area of memory to use for input, output, and intermediate arrays.
-  constexpr int kTensorArenaSize = 128 * 1024;
-  alignas(16) uint8_t tensor_arena[kTensorArenaSize];
+  constexpr int kTensorArenaSize = 16 * 82;
+  alignas(8) uint8_t tensor_arena[kTensorArenaSize];
   }  // namespace
 
 // put function declarations here:
@@ -58,6 +59,7 @@ void setup() {
   Serial.println("Starting up");
   tflite::InitializeTarget();
   Serial.println("Target initialized");
+  
 
   // Map the model into a usable data structure. This doesn't involve any
   // copying or parsing, it's a very lightweight operation.
@@ -68,16 +70,19 @@ void setup() {
   Serial.print("Model version: ");
   Serial.println(model->version());
 
+  Serial.println("Creating op resolver");
 
-  Serial.println("Loading op resolver");
-  static tflite::MicroMutableOpResolver<3> micro_op_resolver;
-  Serial.println("Op resolver created");
-  micro_op_resolver.AddMul();
-  Serial.println("Mul Added");
-  micro_op_resolver.AddFullyConnected();
-  Serial.println("FullyConnected Added");
+
+  static tflite::MicroMutableOpResolver<6> micro_op_resolver;
+  micro_op_resolver.AddFullyConnected();  // Dense layer
+
+  micro_op_resolver.AddRelu();            // ReLU activation
+  micro_op_resolver.AddQuantize();        // Often needed for quantized models
+  micro_op_resolver.AddDequantize();      // If input/output requires it
   micro_op_resolver.AddAdd();
-  Serial.println("Add Added");
+  micro_op_resolver.AddMul();
+
+  
 
   Serial.println("Initializing interpreter");
   static tflite::MicroInterpreter static_interpreter(
@@ -86,16 +91,34 @@ void setup() {
 
   Serial.println("Interpreter loaded");
 
+  TfLiteTensor* input = interpreter->input(0);
+
+
+  Serial.println("Allocating tensors");
+
   TfLiteStatus allocate_status = interpreter->AllocateTensors();
-  Serial.print("Allocate status: ");
-  Serial.print(allocate_status);
   if (allocate_status != kTfLiteOk) {
-    MicroPrintf("AllocateTensors() failed");
+    Serial.println("AllocateTensors failed!");
+    Serial.print("Error code: ");
+    Serial.println(allocate_status);
+    if (allocate_status == kTfLiteError) {
+      Serial.println("Memory allocation error.");
+    } else if (allocate_status == kTfLiteUnresolvedOps) {
+      Serial.println("Missing operations in resolver.");
+    }
+    while (1); // Halt
   }
   
   Serial.println("Tensors allocated");
 
   input = interpreter->input(0);
+
+  Serial.print("Input scale: ");
+  Serial.println(input->params.scale);
+  Serial.print("Input zero-point: ");
+  Serial.println(input->params.zero_point);
+  Serial.print("Input type: ");
+  Serial.println(input->type);  // Should be kTfLiteInt8 (9)
   int8_t test_input[7] = {91,-31,-123,-90,33,123,86};
   input->data.int8 = test_input;
 
