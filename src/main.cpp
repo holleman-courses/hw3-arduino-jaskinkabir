@@ -1,11 +1,14 @@
 #include <Arduino.h>
+
 #include "TensorFlowLite.h"
 #include "model_data.h"
-#include "tensorflow/lite/micro/micro_error_reporter.h"
+#include "tensorflow/lite/micro/micro_log.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
-#include "tensorflow/lite/version.h"
+#include "tensorflow/lite/micro/system_setup.h"
+#include "tensorflow/lite/schema/schema_generated.h"
+
 
 
 #define INPUT_BUFFER_SIZE 64
@@ -13,7 +16,7 @@
 #define INT_ARRAY_SIZE 8
 
 namespace {
-  tflite::ErrorReporter* error_reporter = nullptr;
+  
   const tflite::Model* model = nullptr;
   tflite::MicroInterpreter* interpreter = nullptr;
   TfLiteTensor* input = nullptr;
@@ -27,7 +30,7 @@ namespace {
   
   // An area of memory to use for input, output, and intermediate arrays.
   constexpr int kTensorArenaSize = 136 * 1024;
-  static uint8_t tensor_arena[kTensorArenaSize];
+  alignas(16) uint8_t tensor_arena[kTensorArenaSize];
   }  // namespace
 
 // put function declarations here:
@@ -50,39 +53,49 @@ void setup() {
   // Set up logging. Google style is to avoid globals or statics because of
   // lifetime uncertainty, but since this has a trivial destructor it's okay.
   // NOLINTNEXTLINE(runtime-global-variables)
-  while (!Serial.available());
+  delay(3000);
   Serial.println("Starting up");
-  static tflite::MicroErrorReporter micro_error_reporter;
-  error_reporter = &micro_error_reporter;
+  tflite::InitializeTarget();
+  Serial.println("Target initialized");
 
   // Map the model into a usable data structure. This doesn't involve any
   // copying or parsing, it's a very lightweight operation.
-  model = tflite::GetModel(sin_predictor_tflite);
+  //model = tflite::GetModel(sin_predictor_h5);
   if (model->version() != TFLITE_SCHEMA_VERSION) {
-    TF_LITE_REPORT_ERROR(error_reporter,
-                         "Model provided is schema version %d not equal "
-                         "to supported version %d.",
-                         model->version(), TFLITE_SCHEMA_VERSION);
+    MicroPrintf(
+      "Model provided is schema version %d not equal "
+      "to supported version %d.",
+      model->version(), TFLITE_SCHEMA_VERSION
+    );
+    return;
   }
+  Serial.println("Model loaded");
 
-  static tflite::MicroMutableOpResolver<1> micro_op_resolver;
+  static tflite::MicroMutableOpResolver<2> micro_op_resolver;
+  micro_op_resolver.AddMul();
   micro_op_resolver.AddFullyConnected();
+  Serial.println("Op resolver loaded");
+  //micro_op_resolver.AddAdd();
 
   static tflite::MicroInterpreter static_interpreter(
-      model, micro_op_resolver, tensor_arena, kTensorArenaSize, error_reporter);
+      model, micro_op_resolver, tensor_arena, kTensorArenaSize);
   interpreter = &static_interpreter;
+
+  Serial.println("Interpreter loaded");
 
   TfLiteStatus allocate_status = interpreter->AllocateTensors();
   if (allocate_status != kTfLiteOk) {
-    TF_LITE_REPORT_ERROR(error_reporter, "AllocateTensors() failed");
+    MicroPrintf("AllocateTensors() failed");
   }
   
+  Serial.println("Tensors allocated");
+
   input = interpreter->input(0);
   int8_t test_input[7] = {91,-31,-123,-90,33,123,86};
   input->data.int8 = test_input;
 
-
-  delay(5000);
+  Serial.println("Input set");
+  
   // Arduino does not have a stdout, so printf does not work easily
   // So to print fixed messages (without variables), use 
   // Serial.println() (appends new-line)  or Serial.print() (no added new-line)
@@ -91,7 +104,7 @@ void setup() {
   
   int t1 = millis();
   if (kTfLiteOk != interpreter->Invoke()) {
-    TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed.");
+    MicroPrintf("Invoke failed.");
   }
   int t2 = millis();
   
@@ -139,7 +152,7 @@ void loop() {
       input->data.int8 = input_array;
 
       if (kTfLiteOk != interpreter->Invoke()) {
-        TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed.");
+        MicroPrintf("Invoke failed.");
       }
       TfLiteTensor * output = interpreter->output(0);
 
