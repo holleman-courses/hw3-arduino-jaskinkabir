@@ -21,6 +21,7 @@ namespace {
   const tflite::Model* model = nullptr;
   tflite::MicroInterpreter* interpreter = nullptr;
   TfLiteTensor* input = nullptr;
+  TfLiteTensor* output = nullptr;
   
   // In order to use optimized tensorflow lite kernels, a signed int8_t quantized
   // model is preferred over the legacy unsigned model format. This means that
@@ -30,7 +31,7 @@ namespace {
   // signed value.
   
   // An area of memory to use for input, output, and intermediate arrays.
-  constexpr int kTensorArenaSize = 16 * 82;
+  constexpr int kTensorArenaSize = 1024 * 64;
   alignas(8) uint8_t tensor_arena[kTensorArenaSize];
   }  // namespace
 
@@ -63,7 +64,7 @@ void setup() {
 
   // Map the model into a usable data structure. This doesn't involve any
   // copying or parsing, it's a very lightweight operation.
-  model = tflite::GetModel(sin_predictor_tflite);
+  model = tflite::GetModel(new_sin_predictor_tflite);
   Serial.println("Model loaded");
   Serial.print("Expected schema version: ");
   Serial.println(TFLITE_SCHEMA_VERSION);
@@ -85,17 +86,16 @@ void setup() {
   
 
   Serial.println("Initializing interpreter");
-  static tflite::MicroInterpreter static_interpreter(
+  interpreter = new tflite::MicroInterpreter(
       model, micro_op_resolver, tensor_arena, kTensorArenaSize);
-  interpreter = &static_interpreter;
+  
 
   Serial.println("Interpreter loaded");
 
-  TfLiteTensor* input = interpreter->input(0);
-
-
+  
+  
   Serial.println("Allocating tensors");
-
+  
   TfLiteStatus allocate_status = interpreter->AllocateTensors();
   if (allocate_status != kTfLiteOk) {
     Serial.println("AllocateTensors failed!");
@@ -110,8 +110,9 @@ void setup() {
   }
   
   Serial.println("Tensors allocated");
-
+  
   input = interpreter->input(0);
+  output = interpreter->output(0);
 
   Serial.print("Input scale: ");
   Serial.println(input->params.scale);
