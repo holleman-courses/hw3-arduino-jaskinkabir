@@ -20,13 +20,11 @@ namespace {
   const tflite::Model* model = nullptr;
   tflite::MicroInterpreter* interpreter = nullptr;
   TfLiteTensor* input = nullptr;
+  TfLiteTensor * output = nullptr;
   tflite::ErrorReporter* error_reporter = nullptr;
 
-  constexpr int kTensorArenaSize = 5772;
-
+  constexpr int kTensorArenaSize = 16*81;
   uint8_t tensor_arena[kTensorArenaSize];
-  TfLiteTensor * input = nullptr;
-  TfLiteTensor * output = nullptr;
   }  // namespace
 
 // put function declarations here:
@@ -126,7 +124,7 @@ void setup() {
   int t_print = t1 - t0;
   int t_infer = t2 - t1;
 
-  TfLiteTensor * output = interpreter->output(0);
+  output = interpreter->output(0);
 
   sprintf(out_str_buff, "Predicted Output: %d Expected Output: -38", output->data.int8[0]);
   sprintf(out_str_buff, "Printing Time: %d Inference Time: %d", t_print, t_infer);
@@ -137,6 +135,7 @@ void setup() {
 
 
 void loop() {
+  Serial.println("Enter Seven Integers separated by commas: "); 
   // put your main code here, to run repeatedly:
 
   // check if characters are avialble on the terminal input
