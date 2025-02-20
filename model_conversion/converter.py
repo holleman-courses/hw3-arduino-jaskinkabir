@@ -44,6 +44,7 @@ print(f"Output Scale: {output_details[0]['quantization'][0]} | Output Zero Point
 
 # Scale and quantize input
 raw_input = data[0].reshape(1, 7)
+print("Raw Input:", raw_input)
 quantized_input = raw_input / input_scale + input_zero_point
 input_data = quantized_input.astype(np.int8)
 print("Quantized Input:", input_data)

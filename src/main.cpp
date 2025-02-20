@@ -23,7 +23,7 @@ namespace {
   TfLiteTensor * output = nullptr;
   tflite::ErrorReporter* error_reporter = nullptr;
 
-  constexpr int kTensorArenaSize = 16*81;
+  constexpr int kTensorArenaSize = 1300;
   uint8_t tensor_arena[kTensorArenaSize];
   }  // namespace
 
@@ -83,21 +83,9 @@ void setup() {
 
   
 
-
-  Serial.println("Allocating tensors");
-
-  TfLiteStatus allocate_status = interpreter->AllocateTensors();
-  if (allocate_status != kTfLiteOk) {
-    Serial.println("AllocateTensors failed!");
-    Serial.print("Error code: ");
-    Serial.println(allocate_status);
-    while (1); // Halt
-  }
   
-  Serial.println("Tensors allocated");
-
   input = interpreter->input(0);
-
+  
   Serial.print("Input scale: ");
   Serial.println(input->params.scale);
   Serial.print("Input zero-point: ");
@@ -106,12 +94,21 @@ void setup() {
   Serial.println(input->type);  // Should be kTfLiteInt8 (9)
   int8_t test_input[7] = {91,-31,-123,-90,33,123,86};
   input->data.int8 = test_input;
-
+  
   Serial.println("Input set");
   
-  // Arduino does not have a stdout, so printf does not work easily
-  // So to print fixed messages (without variables), use 
-  // Serial.println() (appends new-line)  or Serial.print() (no added new-line)
+    Serial.println("Allocating tensors");
+  
+    TfLiteStatus allocate_status = interpreter->AllocateTensors();
+    if (allocate_status != kTfLiteOk) {
+      Serial.println("AllocateTensors failed!");
+      Serial.print("Error code: ");
+      Serial.println(allocate_status);
+      while (1); // Halt
+    }
+    
+    Serial.println("Tensors allocated");
+  
   int t0 = millis();
   Serial.println("Test Project waking up");
   
