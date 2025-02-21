@@ -120,7 +120,7 @@ void setup() {
   Serial.println(input->params.zero_point);
   Serial.print("Input type: ");
   Serial.println(input->type);  // Should be kTfLiteInt8 (9)
-  int8_t test_input[7] = {91,-31,-123,-90,33,123,86};
+  int8_t test_input[7] = {125 ,74,-55,-128,-67,63,126};
   input->data.int8 = test_input;
 
   Serial.println("Input set");
@@ -128,22 +128,22 @@ void setup() {
   // Arduino does not have a stdout, so printf does not work easily
   // So to print fixed messages (without variables), use 
   // Serial.println() (appends new-line)  or Serial.print() (no added new-line)
-  int t0 = millis();
+  unsigned long t0 = micros();
   Serial.println("Test Project waking up");
+  unsigned long t1 = micros();
   
-  int t1 = millis();
   if (kTfLiteOk != interpreter->Invoke()) {
     MicroPrintf("Invoke failed.");
   }
-  int t2 = millis();
+  unsigned long t2 = micros();
   
-  int t_print = t1 - t0;
-  int t_infer = t2 - t1;
+  unsigned long t_print = t1 - t0;
+  unsigned long t_infer = t2 - t1;
 
-  TfLiteTensor * output = interpreter->output(0);
+  output = interpreter->output(0);
 
-  sprintf(out_str_buff, "Predicted Output: %d Expected Output: -38", output->data.int8[0]);
-  sprintf(out_str_buff, "Printing Time: %d Inference Time: %d", t_print, t_infer);
+  MicroPrintf("Predicted Output: %d Expected Output: 57", output->data.int8[0]);
+  MicroPrintf("Printing Time: %d Inference Time: %d", t_print, t_infer);
 
   memset(in_str_buff, (char)0, INPUT_BUFFER_SIZE*sizeof(char)); 
 }
@@ -186,7 +186,7 @@ void loop() {
       TfLiteTensor * output = interpreter->output(0);
 
       sprintf(out_str_buff, "Predicted Output: %d", output->data.int8[0]);
-
+      Serial.println(out_str_buff);
       
       // Now clear the input buffer and reset the index to 0
       memset(in_str_buff, (char)0, INPUT_BUFFER_SIZE*sizeof(char)); 
